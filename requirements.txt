@@ -1,0 +1,7 @@
+tensorflow==1.14.0
+keras==2.2.5
+click
+numpy==1.16.0
+Pillow>=2.0.0
+flask
+pytest
