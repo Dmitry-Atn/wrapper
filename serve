@@ -1,1 +1,6 @@
 #!/bin/bash
+flask run --host=0.0.0.0 --port=8080&
+sleep 5s
+echo "Please wait. Downloading weights"
+curl -F "file=@/app/tests/res/image.jpg" localhost:8080/api/predict
+echo "Done"

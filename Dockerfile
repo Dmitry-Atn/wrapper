@@ -1,8 +1,12 @@
-FROM ubuntu:bionic
+FROM python:3.6.8
 
-COPY . /
+COPY . /app
 
-RUN sudo apt-get update && \
-    sudo apt install python-pip3 && \
-    pip3 install -r requirements.txt
+WORKDIR /app
 
+RUN pip3 install --upgrade pip && \
+    pip3 install --default-timeout=100 -r requirements.txt
+
+ENV FLASK_APP wrapper
+
+ENTRYPOINT ["bash"]
