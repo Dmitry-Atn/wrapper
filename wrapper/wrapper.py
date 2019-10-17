@@ -3,7 +3,23 @@ from keras.applications import ResNet50, imagenet_utils
 from keras.preprocessing.image import img_to_array
 from PIL import Image
 from flask import Flask, request, jsonify
+from logging.config import dictConfig
 
+dictConfig({
+    'version': 1,
+    'formatters': {'default': {
+        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+    }},
+    'handlers': {'wsgi': {
+        'class': 'logging.StreamHandler',
+        'stream': 'ext://flask.logging.wsgi_errors_stream',
+        'formatter': 'default'
+    }},
+    'root': {
+        'level': 'INFO',
+        'handlers': ['wsgi']
+    }
+})
 
 def prepare_image(image, target=(224, 224)):
     # if the image mode is not RGB, convert it
@@ -31,6 +47,8 @@ def main(new_image):
 
 
 def create_app():
+
+
     app = Flask(__name__)
 
     @app.route('/predict', methods=['POST'])
