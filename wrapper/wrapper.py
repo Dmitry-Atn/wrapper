@@ -1,9 +1,11 @@
+from logging.config import dictConfig
+import logging
 import numpy as np
-from keras.applications import ResNet50, imagenet_utils
-from keras.preprocessing.image import img_to_array
 from PIL import Image
 from flask import Flask, request, jsonify
-from logging.config import dictConfig
+from keras.applications import ResNet50, imagenet_utils
+from keras.preprocessing.image import img_to_array
+from keras import backend as K
 
 dictConfig({
     'version': 1,
@@ -14,14 +16,24 @@ dictConfig({
         'class': 'logging.StreamHandler',
         'stream': 'ext://flask.logging.wsgi_errors_stream',
         'formatter': 'default'
-    }},
+    },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'wrapper.log',
+            'mode': 'w',
+            'formatter': 'default',
+            'maxBytes': 10*1024*1024,
+            'backupCount': 10
+        }
+    },
     'root': {
         'level': 'INFO',
-        'handlers': ['wsgi']
+        'handlers': ['wsgi','file']
     }
 })
 
 def prepare_image(image, target=(224, 224)):
+    logging.debug("prepare_image is running")
     # if the image mode is not RGB, convert it
     if image.mode != "RGB":
         image = image.convert("RGB")
@@ -35,12 +47,16 @@ def prepare_image(image, target=(224, 224)):
     # return the processed image
     return image
 
-def main(new_image):
+
+def pred(new_image):
+    K.clear_session()
+    logging.debug("main is running")
     image = Image.open(new_image)
     image = prepare_image(image)
 
     model = ResNet50(weights="imagenet")
     preds = model.predict(image)
+    K.clear_session()
 
     results = imagenet_utils.decode_predictions(preds)
     return str(results)
@@ -48,11 +64,11 @@ def main(new_image):
 
 def create_app():
 
-
     app = Flask(__name__)
 
     @app.route('/predict', methods=['POST'])
     def predict():
+        logging.info("/predict request")
         if len(request.files) != 1:
             return jsonify({"error": f"expected 1 file attached, received {len(request.files)}"}), 400
         if 'file' not in request.files:
@@ -61,7 +77,8 @@ def create_app():
             Image.open(request.files['file'])
         except IOError as e:
             return jsonify({"error": "wrong attached file format, image cannot be opened and identified"}), 400
-        return jsonify({"prediction": main(request.files['file'])}), 200
+        logging.debug("all the conditions are met, passing image to main")
+        return jsonify({"prediction": pred(request.files['file'])}), 200
 
     @app.route('/health', methods=['GET'])
     def health():
