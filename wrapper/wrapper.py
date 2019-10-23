@@ -1,4 +1,4 @@
-from logging.config import dictConfig
+from wrapper.logging import dictConfig
 import logging
 import numpy as np
 from PIL import Image
@@ -7,30 +7,7 @@ from keras.applications import ResNet50, imagenet_utils
 from keras.preprocessing.image import img_to_array
 from keras import backend as K
 
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    }},
-    'handlers': {'wsgi': {
-        'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
-    },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'wrapper.log',
-            'mode': 'w',
-            'formatter': 'default',
-            'maxBytes': 10*1024*1024,
-            'backupCount': 10
-        }
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['wsgi','file']
-    }
-})
+
 
 def prepare_image(image, target=(224, 224)):
     logging.debug("prepare_image is running")
