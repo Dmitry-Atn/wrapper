@@ -9,39 +9,35 @@ from keras import backend as K
 
 
 
-def prepare_image(image, target=(224, 224)):
-    logging.debug("prepare_image is running")
-    # if the image mode is not RGB, convert it
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-
-    # resize the input image and preprocess it
-    image = image.resize(target)
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    image = imagenet_utils.preprocess_input(image)
-
-    # return the processed image
-    return image
-
-
-def pred(new_image):
-    K.clear_session()
-    logging.debug("main is running")
-    image = Image.open(new_image)
-    image = prepare_image(image)
-
-    model = ResNet50(weights="imagenet")
-    preds = model.predict(image)
-    K.clear_session()
-
-    results = imagenet_utils.decode_predictions(preds)
-    return str(results)
-
-
 def create_app():
 
     app = Flask(__name__)
+    model = ResNet50(weights="imagenet")
+
+    def prepare_image(image, target=(224, 224)):
+        logging.debug("prepare_image is running")
+        # if the image mode is not RGB, convert it
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # resize the input image and preprocess it
+        image = image.resize(target)
+        image = img_to_array(image)
+        image = np.expand_dims(image, axis=0)
+        image = imagenet_utils.preprocess_input(image)
+
+        # return the processed image
+        return image
+
+    def pred(new_image):
+        logging.debug("main is running")
+        image = Image.open(new_image)
+        image = prepare_image(image)
+        preds = model.predict(image)
+        results = imagenet_utils.decode_predictions(preds)
+        return str(results)
+
+
 
     @app.route('/predict', methods=['POST'])
     def predict():
