@@ -1,70 +1,44 @@
-from logging.config import dictConfig
+from wrapper.logging import dictConfig
 import logging
 import numpy as np
 from PIL import Image
 from flask import Flask, request, jsonify
 from keras.applications import ResNet50, imagenet_utils
 from keras.preprocessing.image import img_to_array
-from keras import backend as K
+import tensorflow
 
-dictConfig({
-    'version': 1,
-    'formatters': {'default': {
-        'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
-    }},
-    'handlers': {'wsgi': {
-        'class': 'logging.StreamHandler',
-        'stream': 'ext://flask.logging.wsgi_errors_stream',
-        'formatter': 'default'
-    },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'wrapper.log',
-            'mode': 'w',
-            'formatter': 'default',
-            'maxBytes': 10*1024*1024,
-            'backupCount': 10
-        }
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['wsgi','file']
-    }
-})
-
-def prepare_image(image, target=(224, 224)):
-    logging.debug("prepare_image is running")
-    # if the image mode is not RGB, convert it
-    if image.mode != "RGB":
-        image = image.convert("RGB")
-
-    # resize the input image and preprocess it
-    image = image.resize(target)
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    image = imagenet_utils.preprocess_input(image)
-
-    # return the processed image
-    return image
-
-
-def pred(new_image):
-    K.clear_session()
-    logging.debug("main is running")
-    image = Image.open(new_image)
-    image = prepare_image(image)
-
-    model = ResNet50(weights="imagenet")
-    preds = model.predict(image)
-    K.clear_session()
-
-    results = imagenet_utils.decode_predictions(preds)
-    return str(results)
 
 
 def create_app():
 
     app = Flask(__name__)
+    model = ResNet50(weights="imagenet")
+    graph = tensorflow.get_default_graph()
+    def prepare_image(image, target=(224, 224)):
+        logging.debug("prepare_image is running")
+        # if the image mode is not RGB, convert it
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # resize the input image and preprocess it
+        image = image.resize(target)
+        image = img_to_array(image)
+        image = np.expand_dims(image, axis=0)
+        image = imagenet_utils.preprocess_input(image)
+
+        # return the processed image
+        return image
+
+    def pred(new_image):
+        logging.debug("main is running")
+        image = Image.open(new_image)
+        image = prepare_image(image)
+        with graph.as_default():
+            preds = model.predict(image)
+        results = imagenet_utils.decode_predictions(preds)
+        return str(results)
+
+
 
     @app.route('/predict', methods=['POST'])
     def predict():
