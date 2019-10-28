@@ -5,7 +5,7 @@ from PIL import Image
 from flask import Flask, request, jsonify
 from keras.applications import ResNet50, imagenet_utils
 from keras.preprocessing.image import img_to_array
-from keras import backend as K
+import tensorflow
 
 
 
@@ -13,7 +13,7 @@ def create_app():
 
     app = Flask(__name__)
     model = ResNet50(weights="imagenet")
-
+    graph = tensorflow.get_default_graph()
     def prepare_image(image, target=(224, 224)):
         logging.debug("prepare_image is running")
         # if the image mode is not RGB, convert it
@@ -33,7 +33,8 @@ def create_app():
         logging.debug("main is running")
         image = Image.open(new_image)
         image = prepare_image(image)
-        preds = model.predict(image)
+        with graph.as_default():
+            preds = model.predict(image)
         results = imagenet_utils.decode_predictions(preds)
         return str(results)
 
